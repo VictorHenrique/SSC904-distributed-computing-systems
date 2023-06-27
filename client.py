@@ -5,11 +5,10 @@ import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
-
 def get(proxy, file):
     f = proxy.read(file)
     if not f:
-        logging.info("file not found")
+        logging.info("File not found")
         return
 
     for block in f:
@@ -42,18 +41,27 @@ def put(proxy, source, destination):
             connection = rpyc.connect(host, port=port)
             connection.root.put(block_id, data, minions)
 
+def _help():
+    help_str = """
+        Avaiable commands:
+            - put <src> <dest>: stores <src> as <dest>.
+            - get <file>: recovers <file> from storage
+    """
+    print(help_str)
+
 def main(args):
-    connection = rpyc.connect("localhost", port=12345)
+    connection = rpyc.connect("127.0.0.1", port=12345)
     proxy = connection.root
 
-    match args[0]:
-        case 'get':
-            get(proxy, args[1])
-        case 'put':
-            put(proxy, args[1], args[2])
-        case _:
-            logging.error("Unkwon command. Possible commands: 'put <src file> <dest file>' and 'get <file>'")
-
+    if args[0] == 'get':
+        get(proxy, args[1])
+    elif args[0] == 'put':
+        put(proxy, args[1], args[2])
+    elif args[0] == 'help':
+        _help()
+    else:
+        logging.error("Unknown command. Use 'help' to see avaiable commands.")
+    
 if __name__ == "__main__":
     main(sys.argv[1:])
     
