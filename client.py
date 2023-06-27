@@ -50,7 +50,7 @@ def _help():
     print(help_str)
 
 def main(args):
-    connection = rpyc.connect("127.0.0.1", port=12345)
+    connection = rpyc.connect("127.0.0.1", port=2131)
     proxy = connection.root
 
     if args[0] == 'get':
