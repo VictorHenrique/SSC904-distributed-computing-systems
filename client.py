@@ -2,11 +2,12 @@ import os
 import sys
 import rpyc
 import logging
+import argparse
 
 logging.basicConfig(level=logging.DEBUG)
 
-def get(proxy, file):
-    f = proxy.read(file)
+def get(main, file):
+    f = main.read(file)
     if not f:
         logging.info("File not found")
         return
@@ -25,13 +26,13 @@ def get(proxy, file):
             except:
                 continue
 
-def put(proxy, source, destination):
+def put(main, source, destination):
     size = os.path.getsize(source)
-    blocks = proxy.write(destination, size)
+    blocks = main.write(destination, size)
 
     with open(source) as f:
         for block in blocks:
-            data = f.read(proxy.block_size)
+            data = f.read(main.block_size)
             block_id = block['block_id']
             minions = block['block_addr']
 
@@ -41,27 +42,43 @@ def put(proxy, source, destination):
             connection = rpyc.connect(host, port=port)
             connection.root.put(block_id, data, minions)
 
-def _help():
+def help():
     help_str = """
-        Avaiable commands:
-            - put <src> <dest>: stores <src> as <dest>.
-            - get <file>: recovers <file> from storage
+        Usage:
+            - put --source_file <src> --dest_file <dest>: stores <src> as <dest>.
+            - get --source_file <file>: recovers <file> from storage
     """
     print(help_str)
 
-def main(args):
-    connection = rpyc.connect("127.0.0.1", port=2131)
-    proxy = connection.root
+def main(opt):
+    try:
+        connection = rpyc.connect("127.0.0.1", port=2131)
+        main = connection.root
 
-    if args[0] == 'get':
-        get(proxy, args[1])
-    elif args[0] == 'put':
-        put(proxy, args[1], args[2])
-    elif args[0] == 'help':
-        _help()
-    else:
-        logging.error("Unknown command. Use 'help' to see avaiable commands.")
+        if opt.cmd == 'get':
+            if opt.source_file:
+                get(main, opt.source_file)
+            else:
+                help()
+        elif opt.cmd == 'put':
+            if opt.source_file and opt.dest_file:
+                put(main, opt.source_file, opt.dest_file)
+            else:
+                help()
+        elif opt.cmd == 'help':
+            help()
+        else:
+            print('Unknown command.')
+            help()
     
+    except ConnectionRefusedError as e:
+        logging.error('Connection refused error. Try again')
+
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--cmd', type=str)
+    parser.add_argument('--source_file', type=str)
+    parser.add_argument('--dest_file', type=str)
+    opt = parser.parse_args()
     
+    main(opt)
