@@ -1,7 +1,6 @@
-
-
 import math
-CHUNK_SIZE = 2*1024
+from collections import deque
+CHUNK_SIZE = 2*1024*1024
 
 class Tree_node:
     def __init__(self, value, is_file, parent=None, descendent=None, sibling=None):
@@ -9,7 +8,7 @@ class Tree_node:
         self.is_file = is_file
         self.parent = parent
         self.descendent = descendent
-        self.sibling = sibling
+        self.sibling = deque([sibling])
         
 class File_manager:
     def __init__(self):
@@ -17,7 +16,8 @@ class File_manager:
 
     def insert_node(self, path, is_file):
         parent, is_found = self.find_node(path)
-        if is_found: return False
+        if is_found: 
+            return False
 
         node = Tree_node(path, is_file)
         node.parent = parent
@@ -25,14 +25,11 @@ class File_manager:
         if not parent_descedent:
             parent.descendent = node
         else:
-            while parent_descedent.sibling:
-                parent_descedent = parent_descedent.sibling
-            parent_descedent.sibling = node
+            self.parent.sibling.append(node)
+            # while parent_descedent.sibling:
+            #     parent_descedent = parent_descedent.sibling
+            # parent_descedent.sibling = node
         
-        while parent_descedent:
-            parent_descedent = parent_descedent.sibling
-        
-        parent_descedent = node
         return True
 
     def find_node(self, path):
@@ -44,8 +41,7 @@ class File_manager:
                 node = node.sibling
             if not node:
                 return False
-            last_node = node
-            node = node.descendent
+            last_node, node = node, node.descendent
         return last_node, node.is_file
 
     def list_nodes(self, node, metadata):
